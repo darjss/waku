@@ -1,0 +1,70 @@
+name: Linux build
+
+# Personal-use Linux build. Trigger manually to avoid burning runner
+# minutes on every push; add `push: branches: [main]` if you want an
+# automatic rebuild after each sync with upstream.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Linux binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libfreetype6-dev \
+            libfontconfig1-dev \
+            libssl-dev \
+            clang \
+            libclang-dev
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal
+          rustup default 1.96.0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-rust-1.96.0-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-rust-1.96.0-cargo-
+
+      - name: Build release binaries
+        run: |
+          # No --locked: the checked-in Cargo.lock was pruned on macOS and
+          # omits the Linux-only windowing crates (wayland, x11rb, ...).
+          # Cargo re-resolves and adds them; the zed fork stays pinned to
+          # the commit recorded in the lock either way.
+          #
+          # No LTO and default codegen units: the repo's release profile
+          # (thin LTO, codegen-units=1) costs 3-4x the build time on a
+          # 4-core runner for a perf gain a chat UI does not need.
+          cargo build --release --bin waku --bin waku_js_repl \
+            --config 'profile.release.lto=false' \
+            --config 'profile.release.codegen-units=16'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: waku-linux
+          path: |
+            target/release/waku
+            target/release/waku_js_repl
+          if-no-files-found: error
