@@ -17,7 +17,7 @@ dirs = "6.0"
 # views — the browser surface's WKWebView. Drop back to upstream once the PR
 # merges.
 gpui = { git = "https://github.com/egoist/zed", branch = "waku-webview", features = ["test-support"] }
-gpui_platform = { git = "https://github.com/egoist/zed", branch = "waku-webview", features = ["font-kit"] }
+gpui_platform = { git = "https://github.com/egoist/zed", branch = "waku-webview", features = ["font-kit", "wayland", "x11"] }
 parking_lot = "0.12"
 rquickjs = "0.12.2"
 rusqlite = { version = "0.37", features = ["bundled"] }
