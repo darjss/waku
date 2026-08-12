@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::OsString;
 use std::fs;
-use std::os::unix::ffi::OsStringExt as _;
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -172,7 +170,11 @@ pub(super) fn registered_processes(directory: &Path) -> Vec<(i32, PathBuf)> {
         .collect()
 }
 
+#[cfg(target_os = "macos")]
 pub(super) fn process_executable(pid: i32) -> Option<PathBuf> {
+    use std::ffi::OsString;
+    use std::os::unix::ffi::OsStringExt as _;
+
     let mut buffer = vec![0_u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
     let length = unsafe {
         libc::proc_pidpath(
@@ -186,4 +188,9 @@ pub(super) fn process_executable(pid: i32) -> Option<PathBuf> {
     }
     buffer.truncate(length as usize);
     Some(PathBuf::from(OsString::from_vec(buffer)))
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+pub(super) fn process_executable(pid: i32) -> Option<PathBuf> {
+    std::fs::read_link(format!("/proc/{pid}/exe")).ok()
 }
