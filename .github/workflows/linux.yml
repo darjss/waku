@@ -25,12 +25,16 @@ jobs:
           sudo apt-get install -y \
             pkg-config \
             libxkbcommon-dev \
+            libxkbcommon-x11-0 \
             libxcb1-dev \
             libfreetype6-dev \
             libfontconfig1-dev \
             libssl-dev \
             clang \
             libclang-dev
+          # Ubuntu ships no dev symlink for libxkbcommon-x11 (the -x11
+          # headers live in libxkbcommon-dev); create one for the linker.
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libxkbcommon-x11.so.0 /usr/lib/x86_64-linux-gnu/libxkbcommon-x11.so
 
       - name: Install Rust
         run: |
